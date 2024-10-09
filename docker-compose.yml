@@ -3,20 +3,48 @@ services:
     build:
       context: ./data_ingestion
     ports:
-      - "8000:8000"
+      - "8000:8000" # Maps host port 8000 to container port 8000
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: dataflow_microservices
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./input_data:/input_data
     depends_on:
-      - db
+      - postgres-db
 
-  db:
+  data_transformation:
+    build:
+      context: data_process
+    ports:
+      - "8001:8000" # Maps host port 8001 to container port 8000
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    depends_on:
+      - postgres-db
+
+  data_save:
+    build:
+      context: ./data_save
+    ports:
+      - "8002:8000" # Maps host port 8002 to container port 8000
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./output_data:/output_data
+    depends_on:
+      - postgres-db
+
+  postgres-db:
     image: postgres:17
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: dataflow_microservices
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
